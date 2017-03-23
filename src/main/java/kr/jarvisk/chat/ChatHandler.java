@@ -17,22 +17,13 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
 
     private final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
-    private final AttributeKey<Integer> idKey = AttributeKey.newInstance("id");
+    private final AttributeKey<String> idKey = AttributeKey.newInstance("id");
 
     private final AtomicInteger connectionCount = new AtomicInteger(0);
-
-    private final AtomicInteger userId = new AtomicInteger(0);
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         connectionCount.incrementAndGet();
-        int id = userId.incrementAndGet();
-
-        ctx.channel().attr(idKey).set(id);
-        ctx.writeAndFlush("user id : " + id + "\n");
-
-        channels.writeAndFlush(id + " join \n");
-        channels.add(ctx.channel());
     }
 
     @Override
@@ -50,17 +41,32 @@ public class ChatHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message message) throws Exception {
-        if ( MessageHeader.ALL.equals(message.getHeader().getCommand()) ) {
-            channels.writeAndFlush(ctx.channel().attr(idKey).get() + " : " + message.getContent());
-        } else if ( MessageHeader.TARGET.equals(message.getHeader().getCommand()) ) {
-            int idOfPosition = message.getContent().indexOf(" ");
-            String targetId = message.getContent().substring(0, idOfPosition);
-            String content = message.getContent().substring(idOfPosition, message.getContent().length());
+        if ( !channels.contains(ctx.channel()) ) {
+            if ( MessageHeader.JOIN.equals(message.getHeader().getCommand()) ) {
+                String userId = message.getContent().replace("\r\n\n","");
+                boolean hasUserId = channels.stream().filter(channel -> channel.attr(idKey).get().equals(userId)).findFirst().isPresent();
+                if ( hasUserId ) {
+                    ctx.writeAndFlush("exist user id : " + userId + "\n");
+                    return;
+                }
 
-            channels.stream().filter(i -> targetId.equals(String.valueOf(i.attr(idKey).get())))
-                    .forEach(c -> c.writeAndFlush(c.attr(idKey).get() + " : " + content));
-        } else if ( MessageHeader.EXIT.equals(message.getHeader().getCommand()) ) {
-            ctx.disconnect();
+                ctx.channel().attr(idKey).set(userId);
+                channels.writeAndFlush(userId + " join \n");
+                channels.add(ctx.channel());
+            }
+        } else {
+            if ( MessageHeader.ALL.equals(message.getHeader().getCommand()) ) {
+                channels.writeAndFlush(ctx.channel().attr(idKey).get() + " : " + message.getContent());
+            } else if ( MessageHeader.TARGET.equals(message.getHeader().getCommand()) ) {
+                int idOfPosition = message.getContent().indexOf(" ");
+                String targetId = message.getContent().substring(0, idOfPosition);
+                String content = message.getContent().substring(idOfPosition, message.getContent().length());
+
+                channels.stream().filter(i -> targetId.equals(String.valueOf(i.attr(idKey).get())))
+                        .forEach(c -> c.writeAndFlush(ctx.channel().attr(idKey) + " -> " + c.attr(idKey).get() + " : " + content));
+            } else if ( MessageHeader.EXIT.equals(message.getHeader().getCommand()) ) {
+                ctx.disconnect();
+            }
         }
     }
 

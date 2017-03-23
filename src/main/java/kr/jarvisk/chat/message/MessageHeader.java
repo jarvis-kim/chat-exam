@@ -11,6 +11,8 @@ import lombok.Getter;
 @Builder
 public class MessageHeader {
 
+    public static final String JOIN = "J";
+
     public static final String ALL = "A";
 
     public static final String TARGET = "T";
