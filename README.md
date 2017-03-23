@@ -26,4 +26,5 @@
     - AttributeKey<> 가무엇인지 파악.
     - ChannelGroup에 new DefaultChannelGroup(GlobalEventExecutor.INSTANCE)를 하는 이유
     - Unit 테스트는 어떻게...?
+        - 일단 찾아보니 EmbeddedChannel을 사용.
     
