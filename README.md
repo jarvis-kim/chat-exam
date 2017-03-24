@@ -4,7 +4,7 @@
 
 ## Command
 - J : 입장하기
-    - J [사용할 아이디]
+    - J [사용할 아이디] [Password]
 - A : 전체 보내기
     - A [메시지]
 - T : 특정 사용자에게 보내기
@@ -13,7 +13,7 @@
 
 ## 실행해보기
 1. telnet localhost [port]
-2. J jarvis
+2. J jarvis 1234
     - jarvis로 입장
 3. A hello~
     - hello~ 전체 메시지 보내기
